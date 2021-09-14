@@ -36,7 +36,7 @@ void read_chunk(std::istream &from, std::string const &magic, std::vector< T > *
 
 	to.resize(header.size / sizeof(T));
 	if (!from.read(reinterpret_cast< char * >(&to[0]), to.size() * sizeof(T))) {
-		throw std::runtime_error("Failed to read chunk data.");
+		//throw std::runtime_error("Failed to read chunk data.");
 	}
 }
 

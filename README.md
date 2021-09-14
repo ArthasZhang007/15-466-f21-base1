@@ -1,8 +1,9 @@
-# (TODO: your game's title)
+# Let's rock and shoot!
 
-Author: (TODO: your name)
+Author: Lingxi Zhang
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: It is a pseudo multiplayer game(on the same keyboard) that two people can play competitively with each other by operating a tank.
+
 
 Screen Shot:
 
@@ -10,13 +11,15 @@ Screen Shot:
 
 How Your Asset Pipeline Works:
 
-(TODO: describe the steps in your asset pipeline, from source files to tiles/backgrounds/whatever you upload to the PPU466.)
+I draw 8x8 png pixel art in gimp and write mapconverter.cpp to convert it to tile and palette and put them under asset folder, later I load it in the beginning of game mode using write and read chunk.
+
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+1st player: wasd for direction, space for shooting.
+2nd player: the arrow keys for direction, enter for shooting.
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+shoot as more balloons as possible to earn scores!
 
 This game was built with [NEST](NEST.md).
 

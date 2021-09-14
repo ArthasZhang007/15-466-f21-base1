@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <deque>
+#include <map>
 
 struct PlayMode : Mode {
 	PlayMode();
@@ -18,16 +19,27 @@ struct PlayMode : Mode {
 	//----- game state -----
 
 	//input tracking:
-	struct Button {
-		uint8_t downs = 0;
-		uint8_t pressed = 0;
-	} left, right, down, up;
+	struct objcd{
+		glm::vec2 cd = glm::vec2(0.0f);
+		glm::vec2 pos;
+	};
+	struct player{
+		struct Button {
+			uint8_t downs = 0;
+			uint8_t pressed = 0;
+		} left, right, down, up, space;
+		glm::vec2 pos = glm::vec2(0.0f);
+		objcd self;
+		std::vector<objcd> projectiles;
+		int score = 0;
+	} p[2];
+
+	std::vector<objcd> trees;
+
+
 
 	//some weird background animation:
 	float background_fade = 0.0f;
-
-	//player position:
-	glm::vec2 player_at = glm::vec2(0.0f);
 
 	//----- drawing handled by PPU466 -----
 

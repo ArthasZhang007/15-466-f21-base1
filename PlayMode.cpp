@@ -1,14 +1,55 @@
 #include "PlayMode.hpp"
+#include "ColorTextureProgram.hpp"
+#include "GL.hpp"
 
+#include <glm/glm.hpp>
 //for the GL_ERRORS() macro:
 #include "gl_errors.hpp"
 
 //for glm::value_ptr() :
 #include <glm/gtc/type_ptr.hpp>
+#include "read_write_chunk.hpp"
 
 #include <random>
+#include <fstream>
+float getrand(float l, float r)
+{
+	float t = (float)rand() / RAND_MAX;
+	return l + (r - l) * t;
+};
+void print_clx(glm::u8vec4 cl)
+{
+	std::cout << (unsigned int)cl.x << ' ' << (unsigned int)cl.y << ' ' << (unsigned int)cl.z << ' ' << (unsigned int)cl.w << std::endl;
+}
 
-PlayMode::PlayMode() {
+void print_palettex(const PPU466::Palette &pl)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		print_clx(pl[i]);
+	}
+}
+std::string level_path2(std::string const &filename, std::string const &suffix)
+{
+	return "../assets/" + filename + "." + suffix;
+}
+
+PlayMode::PlayMode()
+{
+	auto loading = [&](char o_str[], int x, int y) {
+		std::vector<PPU466::Tile> tl;
+		std::vector<PPU466::Palette> pl;
+		std::string name(o_str);
+		std::ifstream tl_input(level_path2(name, "tl").c_str());
+		std::ifstream pl_input(level_path2(name, "pl").c_str());
+		size_t len = name.size();
+		//std::cout << "succeed1\n";
+		read_chunk(tl_input, (name.substr(len - 3, 3) + "t").c_str(), &tl);
+		//std::cout << "succeed2\n";
+		read_chunk(pl_input, (name.substr(len - 3, 3) + "p").c_str(), &pl);
+		ppu.tile_table[x] = tl[0];
+		ppu.palette_table[y] = pl[0];
+	};
 	//TODO:
 	// you *must* use an asset pipeline of some sort to generate tiles.
 	// don't hardcode them like this!
@@ -18,194 +59,226 @@ PlayMode::PlayMode() {
 
 	//Also, *don't* use these tiles in your game:
 
-	{ //use tiles 0-16 as some weird dot pattern thing:
-		std::array< uint8_t, 8*8 > distance;
-		for (uint32_t y = 0; y < 8; ++y) {
-			for (uint32_t x = 0; x < 8; ++x) {
-				float d = glm::length(glm::vec2((x + 0.5f) - 4.0f, (y + 0.5f) - 4.0f));
-				d /= glm::length(glm::vec2(4.0f, 4.0f));
-				distance[x+8*y] = std::max(0,std::min(255,int32_t( 255.0f * d )));
-			}
+	//use sprite 32 as a "player":
+	p[1].pos.x = 156;
+	loading("tankx", 7, 7);
+	loading("tanky", 6, 6);
+	loading("project", 3, 3);
+	loading("explosion", 1, 1);
+	loading("normal", 0, 0);
+	ppu.palette_table[6][2] = {26, 134, 255, 255};
+	ppu.palette_table[6][3] = {5, 197, 52, 255};
+
+	p[0].self.cd.y = p[1].self.cd.y = 0.8f;
+	for (int i = 0; i < 6; i++)
+	{
+		objcd ob;
+		ob.cd = glm::vec2(0.0f, 0.5f);
+		ob.pos = glm::vec2(getrand(0.0, 256.0f), getrand(120.0f, 230.0f));
+		trees.push_back(ob);
+	}
+}
+
+PlayMode::~PlayMode()
+{
+}
+
+bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
+{
+
+	if (evt.type == SDL_KEYDOWN)
+	{
+		if (evt.key.keysym.sym == SDLK_LEFT)
+		{
+			p[0].left.downs += 1;
+			p[0].left.pressed = true;
+			return true;
 		}
-		for (uint32_t index = 0; index < 16; ++index) {
-			PPU466::Tile tile;
-			uint8_t t = (255 * index) / 16;
-			for (uint32_t y = 0; y < 8; ++y) {
-				uint8_t bit0 = 0;
-				uint8_t bit1 = 0;
-				for (uint32_t x = 0; x < 8; ++x) {
-					uint8_t d = distance[x+8*y];
-					if (d > t) {
-						bit0 |= (1 << x);
-					} else {
-						bit1 |= (1 << x);
-					}
-				}
-				tile.bit0[y] = bit0;
-				tile.bit1[y] = bit1;
-			}
-			ppu.tile_table[index] = tile;
+		else if (evt.key.keysym.sym == SDLK_RIGHT)
+		{
+			p[0].right.downs += 1;
+			p[0].right.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_UP)
+		{
+			p[0].up.downs += 1;
+			p[0].up.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_DOWN)
+		{
+			p[0].down.downs += 1;
+			p[0].down.pressed = true;
+			return true;
+		}
+		if (evt.key.keysym.sym == SDLK_a)
+		{
+			p[1].left.downs += 1;
+			p[1].left.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_d)
+		{
+			p[1].right.downs += 1;
+			p[1].right.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_w)
+		{
+			p[1].up.downs += 1;
+			p[1].up.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_s)
+		{
+			p[1].down.downs += 1;
+			p[1].down.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_SPACE)
+		{
+			p[1].space.pressed = true;
+			return true;
 		}
 	}
-
-	//use sprite 32 as a "player":
-	ppu.tile_table[32].bit0 = {
-		0b01111110,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b01111110,
-	};
-	ppu.tile_table[32].bit1 = {
-		0b00000000,
-		0b00000000,
-		0b00011000,
-		0b00100100,
-		0b00000000,
-		0b00100100,
-		0b00000000,
-		0b00000000,
-	};
-
-	//makes the outside of tiles 0-16 solid:
-	ppu.palette_table[0] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
-
-	//makes the center of tiles 0-16 solid:
-	ppu.palette_table[1] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
-
-	//used for the player:
-	ppu.palette_table[7] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0xff, 0xff, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
-
-	//used for the misc other sprites:
-	ppu.palette_table[6] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x88, 0x88, 0xff, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	};
-
-}
-
-PlayMode::~PlayMode() {
-}
-
-bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
-
-	if (evt.type == SDL_KEYDOWN) {
-		if (evt.key.keysym.sym == SDLK_LEFT) {
-			left.downs += 1;
-			left.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_RIGHT) {
-			right.downs += 1;
-			right.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_UP) {
-			up.downs += 1;
-			up.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_DOWN) {
-			down.downs += 1;
-			down.pressed = true;
+	else if (evt.type == SDL_KEYUP)
+	{
+		if (evt.key.keysym.sym == SDLK_LEFT)
+		{
+			p[0].left.pressed = false;
 			return true;
 		}
-	} else if (evt.type == SDL_KEYUP) {
-		if (evt.key.keysym.sym == SDLK_LEFT) {
-			left.pressed = false;
+		else if (evt.key.keysym.sym == SDLK_RIGHT)
+		{
+			p[0].right.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_RIGHT) {
-			right.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_UP)
+		{
+			p[0].up.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_UP) {
-			up.pressed = false;
+		}
+		else if (evt.key.keysym.sym == SDLK_DOWN)
+		{
+			p[0].down.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_DOWN) {
-			down.pressed = false;
+		}
+		if (evt.key.keysym.sym == SDLK_a)
+		{
+			p[1].left.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_d)
+		{
+			p[1].right.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_w)
+		{
+			p[1].up.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_s)
+		{
+			p[1].down.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_SPACE)
+		{
+			p[1].space.pressed = false;
 			return true;
 		}
 	}
 
 	return false;
 }
-
-void PlayMode::update(float elapsed) {
-
-	//slowly rotates through [0,1):
-	// (will be used to set background color)
-	background_fade += elapsed / 10.0f;
-	background_fade -= std::floor(background_fade);
-
-	constexpr float PlayerSpeed = 30.0f;
-	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
-	if (right.pressed) player_at.x += PlayerSpeed * elapsed;
-	if (down.pressed) player_at.y -= PlayerSpeed * elapsed;
-	if (up.pressed) player_at.y += PlayerSpeed * elapsed;
-
-	//reset button press counters:
-	left.downs = 0;
-	right.downs = 0;
-	up.downs = 0;
-	down.downs = 0;
+void capx(glm::vec2 &po, float l, float r)
+{
+	if (po.x < l)
+		po.x = l;
+	if (po.x > r)
+		po.x = r;
 }
+void capy(glm::vec2 &po, float l, float r)
+{
+	if (po.y < l)
+		po.y = l;
+	if (po.y > r)
+		po.y = r;
+}
+void PlayMode::update(float elapsed)
+{
+	constexpr float PlayerSpeed = 30.0f;
+	for (int i = 0; i < 2; i++)
+	{
+		if (p[i].left.pressed)
+			p[i].pos.x -= PlayerSpeed * elapsed;
+		if (p[i].right.pressed)
+			p[i].pos.x += PlayerSpeed * elapsed;
+		if (p[i].down.pressed)
+			p[i].pos.y -= PlayerSpeed * elapsed;
+		if (p[i].up.pressed)
+			p[i].pos.y += PlayerSpeed * elapsed;
+		for (auto &proj : p[i].projectiles)
+		{
+			proj.pos.y += PlayerSpeed * elapsed;
+			capx(proj.pos, 128.0f * i, 128.0f * (i + 1));
+			capy(proj.pos, 0.0f, 256.0f);
+		}
+		//reset button press counters:
+		p[i].self.cd.x += elapsed;
+		p[i].left.downs = 0;
+		p[i].right.downs = 0;
+		p[i].up.downs = 0;
+		p[i].down.downs = 0;
+		capx(p[i].pos, 128.0f * i, 128.0f * (i + 1));
+		capy(p[i].pos, 0.0f, 256.0f);
 
-void PlayMode::draw(glm::uvec2 const &drawable_size) {
-	//--- set ppu state based on game state ---
-
-	//background color will be some hsv-like fade:
-	ppu.background_color = glm::u8vec4(
-		std::min(255,std::max(0,int32_t(255 * 0.5f * (0.5f + std::sin( 2.0f * M_PI * (background_fade + 0.0f / 3.0f) ) ) ))),
-		std::min(255,std::max(0,int32_t(255 * 0.5f * (0.5f + std::sin( 2.0f * M_PI * (background_fade + 1.0f / 3.0f) ) ) ))),
-		std::min(255,std::max(0,int32_t(255 * 0.5f * (0.5f + std::sin( 2.0f * M_PI * (background_fade + 2.0f / 3.0f) ) ) ))),
-		0xff
-	);
-
-	//tilemap gets recomputed every frame as some weird plasma thing:
-	//NOTE: don't do this in your game! actually make a map or something :-)
-	for (uint32_t y = 0; y < PPU466::BackgroundHeight; ++y) {
-		for (uint32_t x = 0; x < PPU466::BackgroundWidth; ++x) {
-			//TODO: make weird plasma thing
-			ppu.background[x+PPU466::BackgroundWidth*y] = ((x+y)%16);
+		if (p[i].space.pressed && p[i].self.cd.x > p[i].self.cd.y)
+		{
+			p[i].projectiles.push_back({glm::vec2(0.0f), p[i].pos});
+			p[i].self.cd.x = 0;
 		}
 	}
 
-	//background scroll:
-	ppu.background_position.x = int32_t(-0.5f * player_at.x);
-	ppu.background_position.y = int32_t(-0.5f * player_at.y);
+	//std::cout<<std::endl;
+}
 
+void PlayMode::draw(glm::uvec2 const &drawable_size)
+{
+	//--- set ppu state based on game state ---
+	ppu.background_color = glm::u8vec4(127, 127, 127, 255);
 	//player sprite:
-	ppu.sprites[0].x = int32_t(player_at.x);
-	ppu.sprites[0].y = int32_t(player_at.y);
-	ppu.sprites[0].index = 32;
+	ppu.sprites[0].x = int32_t(p[0].pos.x);
+	ppu.sprites[0].y = int32_t(p[0].pos.y);
+	ppu.sprites[0].index = 7;
 	ppu.sprites[0].attributes = 7;
 
-	//some other misc sprites:
-	for (uint32_t i = 1; i < 63; ++i) {
-		float amt = (i + 2.0f * background_fade) / 62.0f;
-		ppu.sprites[i].x = int32_t(0.5f * PPU466::ScreenWidth + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * PPU466::ScreenWidth);
-		ppu.sprites[i].y = int32_t(0.5f * PPU466::ScreenHeight + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * PPU466::ScreenWidth);
-		ppu.sprites[i].index = 32;
-		ppu.sprites[i].attributes = 6;
-		if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
-	}
-
+	ppu.sprites[1].x = int32_t(p[1].pos.x);
+	ppu.sprites[1].y = int32_t(p[1].pos.y);
+	ppu.sprites[1].index = 6;
+	ppu.sprites[1].attributes = 6;
 	//--- actually draw ---
+
+	for (int i = 2; i < 8; i++)
+	{
+		ppu.sprites[i].x = int32_t(trees[i-2].pos.x);
+		ppu.sprites[i].y = int32_t(trees[i-2].pos.y);
+		ppu.sprites[i].index = 0;
+		ppu.sprites[i].attributes = 0;
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0; j < p[i].projectiles.size(); j++)
+		{
+			auto &proj = p[i].projectiles[j];
+			int k = (j + 1) * 2 + 6 + i;
+			ppu.sprites[k].x = int32_t(proj.pos.x);
+			ppu.sprites[k].y = int32_t(proj.pos.y);
+			ppu.sprites[k].index = 3;
+			ppu.sprites[k].attributes = 3;
+		}
+	}
 	ppu.draw(drawable_size);
 }

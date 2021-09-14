@@ -122,7 +122,7 @@ void PPU466::draw(glm::uvec2 const &drawable_size) const {
 
 	//build triangle strip representing background and sprites:
 
-	constexpr uint32_t TristripSize = uint32_t(6 * (BackgroundWidth * BackgroundHeight + decltype(sprites)().size()));
+	uint32_t TristripSize = uint32_t(6 * (BackgroundWidth * BackgroundHeight + decltype(sprites)().size()));
 	std::vector< PPUDataStream::Vertex > triangle_strip;
 	triangle_strip.reserve(TristripSize);
 
