@@ -17,6 +17,7 @@ I draw 8x8 png pixel art in gimp and write mapconverter.cpp to convert it to til
 How To Play:
 
 1st player: wasd for direction, space for shooting.
+
 2nd player: the arrow keys for direction, enter for shooting.
 
 shoot as more balloons as possible to earn scores!
