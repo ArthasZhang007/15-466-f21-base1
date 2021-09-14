@@ -36,7 +36,7 @@ std::string level_path2(std::string const &filename, std::string const &suffix)
 
 PlayMode::PlayMode()
 {
-	auto loading = [&](char o_str[], int x, int y) {
+	auto loading = [&](char const *o_str, int x, int y) {
 		std::vector<PPU466::Tile> tl;
 		std::vector<PPU466::Palette> pl;
 		std::string name(o_str);

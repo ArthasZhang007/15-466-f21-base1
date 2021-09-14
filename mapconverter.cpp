@@ -10,8 +10,8 @@ const int tl_w = 8;
 const int tl_h = 8;
 const int tl_table_w = 1;
 const int tl_table_h = 1;
-const int pl_num = 8;
-const int cl_num = 4;
+//const int pl_num = 8;
+//const int cl_num = 4;
 
 void SetTilePixel(PPU466::Tile &tile, int x, int y, uint8_t color_idx)
 {
