@@ -118,7 +118,6 @@ static std::string make_user_dir(std::string const &app_name) {
 
 	return ret;
 }
-
 std::string user_path(std::string const &suffix) {
 	static std::string path = make_user_dir( ... TODO ... );
 	return path + '/' + suffix;
