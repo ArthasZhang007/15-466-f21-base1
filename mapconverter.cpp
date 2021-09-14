@@ -70,7 +70,7 @@ std::string png_str;
 
 int find1(std::vector<glm::u8vec4> src, glm::u8vec4 dst)
 {
-    for (int i = 0; i < src.size(); i++)
+    for (int i = 0; i < static_cast<int>(src.size()); i++)
     {
         if (src[i] == dst)
         {
@@ -82,7 +82,7 @@ int find1(std::vector<glm::u8vec4> src, glm::u8vec4 dst)
 
 int find(PPU466::Palette src, glm::uvec4 dst)
 {
-    for (int i = 0; i < src.size(); i++)
+    for (int i = 0; i < static_cast<int>(src.size()); i++)
     {
         if (src[i].x == dst.x && src[i].y == dst.y && src[i].z == dst.z && src[i].w == dst.w)
         {
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
                     bool pl_match = true;
                     for (auto &cl : prep)
                     {
-                        if (std::find(pl.begin(), pl.end(), cl) == pl.end())
+                        if (find(pl, cl) < 0)
                         {
                             pl_match = false;
                             break;

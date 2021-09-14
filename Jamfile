@@ -126,8 +126,8 @@ GAME_NAMES =
 	;
 LOCATE_TARGET = objs ; #put objects in 'objs' directory
 Objects $(GAME_NAMES:S=.cpp) ;
-Objects mapconverter.cpp ;
+#Objects mapconverter.cpp ;
 
 LOCATE_TARGET = dist ; #put main in 'dist' directory
 MainFromObjects game : $(GAME_NAMES:S=$(SUFOBJ)) ;
-MainFromObjects mapconverter : mapconverter$(SUFOBJ) $(GAME_NAMES:S=$(SUFOBJ)) ;
+#MainFromObjects mapconverter : mapconverter$(SUFOBJ) $(GAME_NAMES:S=$(SUFOBJ)) ;

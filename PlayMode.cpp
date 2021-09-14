@@ -270,7 +270,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size)
 	}
 	for (int i = 0; i < 2; i++)
 	{
-		for (int j = 0; j < p[i].projectiles.size(); j++)
+		for (int j = 0; j <static_cast<int>(p[i].projectiles.size()); j++)
 		{
 			auto &proj = p[i].projectiles[j];
 			int k = (j + 1) * 2 + 6 + i;
