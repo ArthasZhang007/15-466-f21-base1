@@ -44,7 +44,7 @@ void print_tile(const PPU466::Tile &tile)
 }
 void print_cl(glm::u8vec4 cl)
 {
-    std::cout << (unsigned int)cl.x << ' ' << (unsigned int)cl.y << ' ' << (unsigned int)cl.z << ' ' << (unsigned int)cl.w <<std::endl;
+    std::cout << (unsigned int)cl.x << ' ' << (unsigned int)cl.y << ' ' << (unsigned int)cl.z << ' ' << (unsigned int)cl.w << std::endl;
 }
 void print_palette(const PPU466::Palette &pl)
 {
@@ -67,6 +67,30 @@ std::string level_path(std::string const &filename, std::string const &suffix)
     return "../assets/" + filename + "." + suffix;
 }
 std::string png_str;
+
+int find1(std::vector<glm::u8vec4> src, glm::u8vec4 dst)
+{
+    for (int i = 0; i < src.size(); i++)
+    {
+        if (src[i] == dst)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int find(PPU466::Palette src, glm::uvec4 dst)
+{
+    for (int i = 0; i < src.size(); i++)
+    {
+        if (src[i].x == dst.x && src[i].y == dst.y && src[i].z == dst.z && src[i].w == dst.w)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -90,35 +114,35 @@ int main(int argc, char **argv)
     std::vector<PPU466::Tile> tl_table(tl_table_w * tl_table_h, PPU466::Tile());
 
     printf("png tile width: %d height: %d\n", size.x, size.y);
-        glm::u8vec4 eem{0, 0, 0, 0};
-        PPU466::Palette em{eem, eem, eem, eem};
-        PPU466::Palette pl = em;
-        int cnt = 0;
-        for (int i = 0; i < (int)size.x; i++)
+    glm::u8vec4 eem{0, 0, 0, 0};
+    PPU466::Palette em{eem, eem, eem, eem};
+    PPU466::Palette pl = em;
+    int cnt = 0;
+    for (int i = 0; i < (int)size.x; i++)
+    {
+        for (int j = 0; j < (int)size.y; j++)
         {
-            for (int j = 0; j < (int)size.y; j++)
+            int k = i * size.y + j;
+            auto cl = png_data[k];
+            evolve(cl);
+            if (find(pl, cl) >= 0)
             {
-                int k = i * size.y + j;
-                auto cl = png_data[k];
-                evolve(cl);
-                if (std::find(pl.begin(), pl.end(), cl) == pl.end())
+                pl[cnt] = cl;
+                cnt++;
+                if (cnt == 4)
                 {
-                    pl[cnt] = cl;
-                    cnt++;
-                    if (cnt == 4)
-                    {
-                        pl_table.push_back(std::move(pl));
-                        pl = em;
-                    }
+                    pl_table.push_back(std::move(pl));
+                    pl = em;
                 }
-                //print_cl(pl[j]);
             }
+            //print_cl(pl[j]);
         }
-        if (cnt < 4)
-        {
-            pl_table.push_back(std::move(pl));
-            pl = em;
-        }
+    }
+    if (cnt < 4)
+    {
+        pl_table.push_back(std::move(pl));
+        pl = em;
+    }
     for (int i = 0; i < tl_table_h; i++)
     {
         for (int j = 0; j < tl_table_w; j++)
@@ -134,7 +158,7 @@ int main(int argc, char **argv)
                     {
                         auto cl = png_data[row * tl_w * tl_table_w + col];
                         evolve(cl);
-                        if (std::find(prep.begin(), prep.end(), cl) == prep.end())
+                        if (find1(prep, cl) >= 0)
                         {
                             prep.push_back(cl);
 
@@ -192,7 +216,7 @@ int main(int argc, char **argv)
                         int row = i * tl_h + (7 - y);
                         int col = j * tl_w + x;
                         auto &cl = png_data[row * tl_w * tl_table_w + col];
-                        uint8_t cl_idx = static_cast<uint8_t>(std::distance(pl.begin(), std::find(pl.begin(), pl.end(), cl)));
+                        uint8_t cl_idx = static_cast<uint8_t>(find(pl, cl));
                         SetTilePixel(tl, x, y, cl_idx);
                     }
                 }
@@ -204,8 +228,8 @@ int main(int argc, char **argv)
     pl_table.resize(1);
     print_palette(pl_table[0]);
 
-    write_chunk((png_str.substr(x-3, 3) + "p").c_str(), pl_table, &pl_output);
-    write_chunk((png_str.substr(x-3, 3) + "t").c_str(), tl_table, &tl_output);
+    write_chunk((png_str.substr(x - 3, 3) + "p").c_str(), pl_table, &pl_output);
+    write_chunk((png_str.substr(x - 3, 3) + "t").c_str(), tl_table, &tl_output);
 
     return 0;
 }
